@@ -17,7 +17,7 @@ parser.add_option("--nevents", type=int, help="number of events to process for a
 parser.add_option("--skip-events", type=int, help="skip the first n events")
 parser.add_option("-w", "--overwrite", action='store_true', default=False, help="overwrite previous submitDir")
 # input configuration
-parser.add_option("--dataSource", help="undefined=-1, data=0, FullSim=1, AF-II=2 ", type="int", default=1)
+parser.add_option("--isMC", help="Sample is MC (not data)", type=int, default=1)
 parser.add_option('--mode', dest='access_mode', metavar='{class, branch, athena}', choices=['class', 'branch', 'athena'], default='class', help='run using class access mode, branch access mode, or athena access mode')
 
 (options, args) = parser.parse_args()
@@ -102,6 +102,8 @@ if options.skip_events:
 # add our algorithm to the job
 logging.info("creating algorithms")
 mainanalysis = ROOT.MainAnalysis()
+
+setattr(mainanalysis,'isMC',options.isMC)
 
 logging.info("adding algorithms")
 job.algsAdd(mainanalysis)

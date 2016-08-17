@@ -14,9 +14,7 @@ class MainAnalysis : public EL::Algorithm
 public:
   // float cutValue;
 
-  TH1 *h_jetncharged; //!
-
-
+  bool isMC;
   // variables that don't get filled at submission time should be
   // protected from being send from the submission node to the worker
   // node (done by the //!)
@@ -30,16 +28,11 @@ public:
   std::vector<float> m_j0eta; //!
   std::vector<float> m_j0phi; //!
   std::vector<float> m_j0m; //!
-  std::vector<float> m_j0id; //!
 
   std::vector<float> m_gammapt; //!
   std::vector<float> m_gammaeta; //!
   std::vector<float> m_gammaphi; //!
   std::vector<float> m_gammam; //!
-
-  int m_NTruthPhotons; //!
-  int m_NTruthJets; //!
-
 
   // this is a standard constructor
   MainAnalysis ();

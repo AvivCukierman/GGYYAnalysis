@@ -3,6 +3,7 @@ python GGYYAnalysis/scripts/Run.py \
     --submitDir "Test" \
     -w \
     --inputFiles "/nfs/slac/g/atlas/u01/users/acukierm/VBF_Analysis/Test_Sample" \
+    --isMC 1 \
     --nevents 10 \
     --mode "class" \
     --driver "direct"

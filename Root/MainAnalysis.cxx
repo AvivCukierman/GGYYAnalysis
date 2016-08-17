@@ -24,14 +24,11 @@ MainAnalysis :: MainAnalysis () :
     m_tree(new TTree("tree", "output tree")),
     m_eventnumber(-999.0),
     m_eventweight(-999.0),
-    m_NTruthPhotons(-1),
-    m_NTruthJets(-1),
 
     m_j0pt{ARRAY_INIT},
     m_j0eta{ARRAY_INIT},
     m_j0phi{ARRAY_INIT},
     m_j0m{ARRAY_INIT},
-    m_j0id{ARRAY_INIT},
 
     m_gammapt{ARRAY_INIT},
     m_gammaeta{ARRAY_INIT},
@@ -103,14 +100,13 @@ EL::StatusCode MainAnalysis :: initialize ()
 
   m_tree->Branch("EventNumber", &m_eventnumber);
   m_tree->Branch("EventWeight", &m_eventweight);
-  m_tree->Branch("NTruthPhotons", &m_NTruthPhotons);
-  m_tree->Branch("NTruthJets", &m_NTruthJets);
+  //m_tree->Branch("NTruthPhotons", &m_NTruthPhotons);
+  //m_tree->Branch("NTruthJets", &m_NTruthJets);
 
   m_tree->Branch("j0pt", &m_j0pt);
   m_tree->Branch("j0eta", &m_j0eta);
   m_tree->Branch("j0phi", &m_j0phi);
   m_tree->Branch("j0m", &m_j0m);
-  m_tree->Branch("j0id", &m_j0id);
 
   m_tree->Branch("gammapt", &m_gammapt);
   m_tree->Branch("gammaeta", &m_gammaeta);
@@ -134,42 +130,35 @@ EL::StatusCode MainAnalysis :: execute ()
   const xAOD::EventInfo* eventInfo = 0;
   ANA_CHECK(m_event->retrieve( eventInfo, "EventInfo") );
   m_eventnumber = eventInfo->eventNumber();
-  m_eventweight = eventInfo->mcEventWeight();
+  if(isMC) m_eventweight = eventInfo->mcEventWeight();
+  else m_eventweight = 1;
 
-  //const xAOD::TruthEventContainer* xTruthEventContainer = NULL;
-  //ANA_CHECK( m_event->retrieve( xTruthEventContainer, "TruthEvents"));
-  //Info("execute()","******* TruthEvents size %lu", xTruthEventContainer->size());
-  //xAOD::TruthEventContainer::const_iterator truth_event = xTruthEventContainer->begin();
-  
   float min_photon_pt = 5000;
   // get photons
-  const DataVector<xAOD::TruthParticle_v1>* photons (nullptr);
-  ANA_CHECK(m_event->retrieve( photons, "Truth3Photons" ));
+  const DataVector<xAOD::Photon_v1>* photons (nullptr);
+  ANA_CHECK(m_event->retrieve( photons, "Photons" ));
   //Info("execute()", "  number of photons = %lu", photons->size());
   //m_NTruthPhotons = photons->size();
-  m_NTruthPhotons = 2;
   m_gammapt.clear();
   m_gammaeta.clear();
   m_gammaphi.clear();
   m_gammam.clear();
-  std::vector<TLorentzVector> gamp4;
+  //std::vector<TLorentzVector> gamp4;
   for(const auto photon : *photons){
     if(photon->pt()<min_photon_pt) continue;
     m_gammapt.push_back(photon->pt()/1000.);
     m_gammaeta.push_back(photon->eta());
     m_gammaphi.push_back(photon->phi());
     m_gammam.push_back(photon->m()/1000.);
-    gamp4.push_back(photon->p4());
+    //gamp4.push_back(photon->p4());
   }
 
   // get jet container of interest
   // 
   float min_jet_pt = 10000;
   const xAOD::JetContainer* jets (nullptr);
-  ANA_CHECK(m_event->retrieve( jets, "AntiKt4TruthJets" ));
+  ANA_CHECK(m_event->retrieve( jets, "AntiKt4LCTopoJets" ));
   // Info("execute()", "  number of jets = %lu", jets->size());
-  m_NTruthJets = jets->size();
-
   // loop over the jets in the container
   xAOD::JetContainer::const_iterator jet_itr = jets->begin();
   xAOD::JetContainer::const_iterator jet_end = jets->end();
@@ -178,52 +167,13 @@ EL::StatusCode MainAnalysis :: execute ()
   m_j0eta.clear();
   m_j0phi.clear();
   m_j0m.clear();
-  m_j0id.clear();
   for(const auto jet : *jets){
     if(jet->pt()<min_jet_pt) continue;
-    TLorentzVector jetp4 = jet->p4();
-    bool isPhoton=false;
-    for(int i=0; i<gamp4.size(); i++){
-      if(m_gammapt[i]*1000.<min_photon_pt) continue;
-      float dR = jetp4.DeltaR(gamp4[i]); 
-      if(dR<0.4){
-        isPhoton=true;
-        break;
-      }
-    }
-    int id;
-    jet->getAttribute("PartonTruthLabelID",id);
-    //std::cout << isPhoton << ";" << id << std::endl;
-    if(isPhoton) m_j0id.push_back(22); //pdgID of photon
-    else m_j0id.push_back(id); //could be anything
-
     m_j0pt.push_back(jet->pt()/1000.);
     m_j0eta.push_back(jet->eta());
     m_j0phi.push_back(jet->phi());
     m_j0m.push_back(jet->m()/1000.);
-
-    // for (size_t ind = 0; ind < (*jet_itr)->numConstituents(); ind++) {
-    //   const xAOD::TruthParticle *part = static_cast<const xAOD::TruthParticle*>((*jet_itr)->rawConstituent(ind));
-    //   if (!part) continue;
-    //   if( ! (part->status() == 1) )                continue; // final state
-    //   if( ! (part->isCharged()) )                  continue; // charged
-    //   if( ! (part->pt()>50.) )                     continue; //pt>0 MeV
-    //   // if( ! (part->p4().DeltaR((*jet_itr)->p4()) < 0.4) ) continue; // inside of jet
-    //   ncharged++; //count this particle
-    // }
   } // end for loop over jets
-
-  /*for(int iPart=0; iPart<(*truth_event)->nTruthParticles(); ++iPart){
-    const xAOD::TruthParticle* pitr = (*truth_event)->truthParticle(iPart);
-    if( !pitr) continue;
-    if( ! (pitr->status() == 1) )                continue; // final state
-    //if( ! (pitr->isCharged()) )                  continue; // charged
-    if( ! (pitr->pt()>50.) )                    continue; //pt>0 MeV
-    //if( ! (pitr->p4().DeltaR((*jet_itr)->p4()) < 0.4) ) continue; // inside of jet
-    if ((pitr->barcode())>2e5) continue;
-    std::cout << pitr->pdgId() << std::endl;
-    //ncharged++; //count this particle
-  }*/
 
   m_tree->Fill();
 
